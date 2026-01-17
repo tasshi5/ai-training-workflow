@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TBM AI研修 ワークフロー管理システム v3.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        phase1: { light: '#FEF3C7', main: '#F59E0B', dark: '#B45309' },
+                        phase2: { light: '#DBEAFE', main: '#3B82F6', dark: '#1D4ED8' },
+                        phase3: { light: '#D1FAE5', main: '#10B981', dark: '#047857' },
+                        phase4: { light: '#FED7AA', main: '#F97316', dark: '#C2410C' },
+                        phase5: { light: '#E9D5FF', main: '#A855F7', dark: '#7C3AED' },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        .phase-card { transition: all 0.3s ease; }
+        .phase-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
+        .quick-link { transition: all 0.2s ease; }
+        .quick-link:hover { transform: scale(1.02); }
+        .kanban-card { transition: all 0.2s ease; cursor: pointer; }
+        .kanban-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .status-todo { background-color: #fef3c7; color: #92400e; }
+        .status-inprogress { background-color: #dbeafe; color: #1e40af; }
+        .status-done { background-color: #d1fae5; color: #065f46; }
+        .status-na { background-color: #f3f4f6; color: #6b7280; }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+        .accordion-content.open { max-height: 3000px; }
+        .modal { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .modal.active { opacity: 1; pointer-events: auto; }
+        .deadline-warning { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .session-item { border-left: 3px solid #e5e7eb; }
+        .session-item.done { border-left-color: #10b981; }
+        .session-item.current { border-left-color: #f59e0b; background-color: #fffbeb; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold">TBM AI研修 ワークフロー管理</h1>
+                        <p class="text-xs text-blue-200">サステナビリティ経営・人的資本価値向上</p>
+                    </div>
+                </div>
+                <button onclick="openNewProjectModal()" class="bg-white/20 hover:bg-white/30 backdrop-blur px-4 py-2 rounded-lg font-medium flex items-center space-x-2 transition text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span>新規案件</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Quick Access Bar -->
+    <div class="bg-white border-b shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-2">
+            <div class="flex items-center space-x-2 overflow-x-auto pb-1">
+                <span class="text-xs text-gray-500 font-medium whitespace-nowrap">🔗 クイック:</span>
+                <a href="https://docs.google.com/document/d/1v5KwWv0ivQCvb8QmGl1TbzOiIVneX_nUpZahn6usyDg/edit?tab=t.kv2ygu4ud7me" target="_blank" class="quick-link flex items-center space-x-1 px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-xs font-medium hover:bg-red-200 border border-red-200">
+                    <span>📝</span><span>商談準備【必須】</span>
+                </a>
+                <a href="https://drive.google.com/drive/u/0/folders/1Wcm-iz03vWPS5cM-OnD1eVKAeIc4RXW1" target="_blank" class="quick-link flex items-center space-x-1 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-full text-xs font-medium hover:bg-blue-200">
+                    <span>📁</span><span>クライエント一覧</span>
+                </a>
+                <a href="https://forms.gle/nSL36KmZZocio6aZA" target="_blank" class="quick-link flex items-center space-x-1 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-xs font-medium hover:bg-green-200">
+                    <span>📋</span><span>受講前フォーム</span>
+                </a>
+                <a href="https://docs.google.com/spreadsheets/d/1Ohx7SLl3C8Zd0u2UPO9JWBhXcoS3NKfO/edit" target="_blank" class="quick-link flex items-center space-x-1 px-3 py-1.5 bg-green-100 text-green-800 rounded-full text-xs font-medium hover:bg-green-200">
+                    <span>📄</span><span>名簿Excel</span>
+                </a>
+                <a href="https://docs.google.com/spreadsheets/d/1egvzUrWYUGaHqlUtJrTJCuB4ifb4L7Pb/edit" target="_blank" class="quick-link flex items-center space-x-1 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-xs font-medium hover:bg-purple-200">
+                    <span>📄</span><span>見積書兼注文書</span>
+                </a>
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSf4PXBynOjvR3EnJa7RX9oZMraYHQ8BjegoyTT6qZeLoKfHGQ/viewform" target="_blank" class="quick-link flex items-center space-x-1 px-3 py-1.5 bg-teal-100 text-teal-800 rounded-full text-xs font-medium hover:bg-teal-200">
+                    <span>🏢</span><span>社労士用入力</span>
+                </a>
+                <a href="https://docs.google.com/forms/d/14L4OyclHMrlxTcFowflDtJ3d8Dy2fSL1qfUcx-H6GA4/edit" target="_blank" class="quick-link flex items-center space-x-1 px-3 py-1.5 bg-amber-100 text-amber-800 rounded-full text-xs font-medium hover:bg-amber-200">
+                    <span>📊</span><span>振り返りアンケート</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-4">
+        <!-- Tab Navigation -->
+        <div class="flex flex-wrap gap-1 bg-white p-1 rounded-xl mb-4 shadow-sm border w-fit">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 rounded-lg font-medium transition text-sm bg-blue-600 text-white">
+                📊 ダッシュボード
+            </button>
+            <button onclick="switchTab('kanban')" id="tab-kanban" class="tab-btn px-4 py-2 rounded-lg font-medium transition text-sm text-gray-600 hover:bg-gray-100">
+                📋 案件管理
+            </button>
+            <button onclick="switchTab('links')" id="tab-links" class="tab-btn px-4 py-2 rounded-lg font-medium transition text-sm text-gray-600 hover:bg-gray-100">
+                🔗 ツール・リンク
+            </button>
+            <button onclick="switchTab('training')" id="tab-training" class="tab-btn px-4 py-2 rounded-lg font-medium transition text-sm text-gray-600 hover:bg-gray-100">
+                📚 研修概要
+            </button>
+            <button onclick="switchTab('manual')" id="tab-manual" class="tab-btn px-4 py-2 rounded-lg font-medium transition text-sm text-gray-600 hover:bg-gray-100">
+                📖 業務マニュアル
+            </button>
+        </div>
+
+        <!-- ========== DASHBOARD TAB ========== -->
+        <div id="content-dashboard" class="tab-content space-y-4">
+            <!-- Stats Row -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div class="bg-white rounded-xl p-4 shadow-sm border">
+                    <p class="text-xs text-gray-500 mb-1">進行中</p>
+                    <p class="text-2xl font-bold text-blue-600" id="stat-active">0</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border">
+                    <p class="text-xs text-gray-500 mb-1">今週の研修</p>
+                    <p class="text-2xl font-bold text-green-600" id="stat-thisweek">0</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border">
+                    <p class="text-xs text-gray-500 mb-1">期限注意</p>
+                    <p class="text-2xl font-bold text-red-600" id="stat-deadline">0</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border">
+                    <p class="text-xs text-gray-500 mb-1">要対応</p>
+                    <p class="text-2xl font-bold text-orange-600" id="stat-pending">0</p>
+                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border">
+                    <p class="text-xs text-gray-500 mb-1">完了</p>
+                    <p class="text-2xl font-bold text-purple-600" id="stat-completed">0</p>
+                </div>
+            </div>
+
+            <!-- Workflow Overview -->
+            <div class="bg-white rounded-xl shadow-sm border p-4">
+                <h2 class="text-sm font-bold text-gray-800 mb-3">📈 案件フロー（S10〜S55）</h2>
+                <div class="flex flex-wrap gap-2 items-center justify-center text-xs">
+                    <div class="flex items-center space-x-1 px-2 py-1.5 bg-phase1-light rounded-lg">
+                        <span class="w-5 h-5 bg-phase1-main text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                        <span class="font-medium text-phase1-dark">提案・内示</span>
+                        <span class="text-gray-400" id="phase1-count">(0)</span>
+                    </div>
+                    <svg class="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <div class="flex items-center space-x-1 px-2 py-1.5 bg-phase2-light rounded-lg">
+                        <span class="w-5 h-5 bg-phase2-main text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                        <span class="font-medium text-phase2-dark">受注</span>
+                        <span class="text-gray-400" id="phase2-count">(0)</span>
+                    </div>
+                    <svg class="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <div class="flex items-center space-x-1 px-2 py-1.5 bg-phase3-light rounded-lg">
+                        <span class="w-5 h-5 bg-phase3-main text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                        <span class="font-medium text-phase3-dark">社労士連携</span>
+                        <span class="text-gray-400" id="phase3-count">(0)</span>
+                    </div>
+                    <svg class="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <div class="flex items-center space-x-1 px-2 py-1.5 bg-phase4-light rounded-lg">
+                        <span class="w-5 h-5 bg-phase4-main text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                        <span class="font-medium text-phase4-dark">研修実施</span>
+                        <span class="text-gray-400" id="phase4-count">(0)</span>
+                    </div>
+                    <svg class="w-3 h-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <div class="flex items-center space-x-1 px-2 py-1.5 bg-phase5-light rounded-lg">
+                        <span class="w-5 h-5 bg-phase5-main text-white rounded-full flex items-center justify-center text-xs font-bold">5</span>
+                        <span class="font-medium text-phase5-dark">研修後</span>
+                        <span class="text-gray-400" id="phase5-count">(0)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Tasks & Deadlines -->
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-white rounded-xl shadow-sm border p-4">
+                    <h2 class="text-sm font-bold text-gray-800 mb-3">🔥 優先タスク（次アクション）</h2>
+                    <div id="priority-tasks" class="space-y-2 max-h-64 overflow-y-auto">
+                        <p class="text-gray-400 text-center py-4 text-sm">案件を追加してください</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border p-4">
+                    <h2 class="text-sm font-bold text-gray-800 mb-3">📅 直近の研修・期限</h2>
+                    <div id="upcoming-deadlines" class="space-y-2 max-h-64 overflow-y-auto">
+                        <p class="text-gray-400 text-center py-4 text-sm">予定なし</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== KANBAN TAB ========== -->
+        <div id="content-kanban" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3 overflow-x-auto pb-4">
+                <!-- Phase 1: 提案・内示 -->
+                <div class="bg-phase1-light/50 rounded-xl p-3 min-w-[200px]">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <span class="w-6 h-6 bg-phase1-main text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                        <div>
+                            <span class="text-sm font-bold text-phase1-dark">提案・内示</span>
+                            <p class="text-xs text-gray-500">S10-S12</p>
+                        </div>
+                    </div>
+                    <div id="kanban-phase1" class="space-y-2 min-h-[100px]"></div>
+                </div>
+                <!-- Phase 2: 受注 -->
+                <div class="bg-phase2-light/50 rounded-xl p-3 min-w-[200px]">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <span class="w-6 h-6 bg-phase2-main text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                        <div>
+                            <span class="text-sm font-bold text-phase2-dark">受注</span>
+                            <p class="text-xs text-gray-500">S20-S26</p>
+                        </div>
+                    </div>
+                    <div id="kanban-phase2" class="space-y-2 min-h-[100px]"></div>
+                </div>
+                <!-- Phase 3: 社労士連携 -->
+                <div class="bg-phase3-light/50 rounded-xl p-3 min-w-[200px]">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <span class="w-6 h-6 bg-phase3-main text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                        <div>
+                            <span class="text-sm font-bold text-phase3-dark">社労士連携</span>
+                            <p class="text-xs text-gray-500">S30-S33</p>
+                        </div>
+                    </div>
+                    <div id="kanban-phase3" class="space-y-2 min-h-[100px]"></div>
+                </div>
+                <!-- Phase 4: 研修実施 -->
+                <div class="bg-phase4-light/50 rounded-xl p-3 min-w-[200px]">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <span class="w-6 h-6 bg-phase4-main text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                        <div>
+                            <span class="text-sm font-bold text-phase4-dark">研修実施</span>
+                            <p class="text-xs text-gray-500">S40-S42</p>
+                        </div>
+                    </div>
+                    <div id="kanban-phase4" class="space-y-2 min-h-[100px]"></div>
+                </div>
+                <!-- Phase 5: 研修後 -->
+                <div class="bg-phase5-light/50 rounded-xl p-3 min-w-[200px]">
+                    <div class="flex items-center space-x-2 mb-3">
+                        <span class="w-6 h-6 bg-phase5-main text-white rounded-full flex items-center justify-center text-xs font-bold">5</span>
+                        <div>
+                            <span class="text-sm font-bold text-phase5-dark">研修後</span>
+                            <p class="text-xs text-gray-500">S50-S55</p>
+                        </div>
+                    </div>
+                    <div id="kanban-phase5" class="space-y-2 min-h-[100px]"></div>
+                </div>
+            </div>
+            <div class="mt-4 text-center">
+                <button onclick="openNewProjectModal()" class="text-blue-600 hover:text-blue-700 font-medium text-sm">+ 新規案件を追加</button>
+            </div>
+        </div>
+
+        <!-- ========== LINKS TAB ========== -->
+        <div id="content-links" class="tab-content hidden">
+            <!-- 運用ルール（最重要） -->
+            <div class="bg-red-50 border-2 border-red-300 rounded-xl p-4 mb-4">
+                <h3 class="font-bold text-red-800 mb-2 flex items-center"><span class="mr-2">🚨</span>運用ルール【必読・必守】</h3>
+                <div class="grid md:grid-cols-2 gap-3 text-sm">
+                    <div class="bg-white rounded-lg p-3 border border-red-200">
+                        <p class="font-bold text-gray-800 mb-1">商談フロー</p>
+                        <ul class="text-gray-600 space-y-1 text-xs">
+                            <li>✅ 商談前：<a href="https://docs.google.com/document/d/1v5KwWv0ivQCvb8QmGl1TbzOiIVneX_nUpZahn6usyDg/edit?tab=t.kv2ygu4ud7me" target="_blank" class="text-red-600 underline font-medium">商談準備フォーマット</a>で準備</li>
+                            <li>✅ 商談後：同ドキュメントに結果を記録</li>
+                            <li>✅ 保存先：<a href="https://drive.google.com/drive/u/0/folders/1Wcm-iz03vWPS5cM-OnD1eVKAeIc4RXW1" target="_blank" class="text-blue-600 underline">クライエント一覧</a>に格納</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border border-red-200">
+                        <p class="font-bold text-gray-800 mb-1">助成金の期限</p>
+                        <ul class="text-gray-600 space-y-1 text-xs">
+                            <li>⚠️ 計画提出：研修開始<strong class="text-red-600">1ヶ月前</strong>まで</li>
+                            <li>⚠️ 支給申請：研修終了後<strong class="text-red-600">2ヶ月以内</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-4">
+                <!-- 商談・提案 -->
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="bg-amber-500 text-white px-4 py-3">
+                        <h3 class="font-bold">📝 商談・提案（Phase 1）</h3>
+                    </div>
+                    <div class="p-4 space-y-2">
+                        <a href="https://docs.google.com/document/d/1v5KwWv0ivQCvb8QmGl1TbzOiIVneX_nUpZahn6usyDg/edit?tab=t.kv2ygu4ud7me" target="_blank" class="flex items-center justify-between p-3 bg-red-50 rounded-lg hover:bg-red-100 transition border border-red-200">
+                            <div>
+                                <p class="font-bold text-gray-800 text-sm">📝 商談準備フォーマット</p>
+                                <p class="text-xs text-red-600 font-medium">【必須】商談前後に使用</p>
+                            </div>
+                            <span class="text-red-600">→</span>
+                        </a>
+                        <a href="https://drive.google.com/drive/u/0/folders/1Wcm-iz03vWPS5cM-OnD1eVKAeIc4RXW1" target="_blank" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                            <div>
+                                <p class="font-medium text-gray-800 text-sm">📁 クライエント一覧フォルダ</p>
+                                <p class="text-xs text-gray-500">商談後の格納先</p>
+                            </div>
+                            <span class="text-gray-600">→</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 受注 -->
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="bg-blue-500 text-white px-4 py-3">
+                        <h3 class="font-bold">📋 受注（Phase 2）</h3>
+                    </div>
+                    <div class="p-4 space-y-2">
+                        <a href="https://forms.gle/nSL36KmZZocio6aZA" target="_blank" class="flex items-center justify-between p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+                            <div>
+                                <p class="font-medium text-gray-800 text-sm">📋 受講前詳細確認フォーム</p>
+                                <p class="text-xs text-gray-500">顧客に送付（Googleフォーム）</p>
+                            </div>
+                            <span class="text-blue-600">→</span>
+                        </a>
+                        <a href="https://docs.google.com/spreadsheets/d/1Ohx7SLl3C8Zd0u2UPO9JWBhXcoS3NKfO/edit" target="_blank" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                            <div>
+                                <p class="font-medium text-gray-800 text-sm">📄 受講者名簿アンケート</p>
+                                <p class="text-xs text-gray-500">Excel形式</p>
+                            </div>
+                            <span class="text-gray-600">→</span>
+                        </a>
+                        <a href="https://docs.google.com/spreadsheets/d/1egvzUrWYUGaHqlUtJrTJCuB4ifb4L7Pb/edit" target="_blank" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                            <div>
+                                <p class="font-medium text-gray-800 text-sm">📄 見積書兼注文書</p>
+                                <p class="text-xs text-gray-500">営業管理が作成</p>
+                            </div>
+                            <span class="text-gray-600">→</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 社労士連携・研修後 -->
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="bg-green-500 text-white px-4 py-3">
+                        <h3 class="font-bold">🏢 社労士連携・研修後</h3>
+                    </div>
+                    <div class="p-4 space-y-2">
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSf4PXBynOjvR3EnJa7RX9oZMraYHQ8BjegoyTT6qZeLoKfHGQ/viewform" target="_blank" class="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 transition">
+                            <div>
+                                <p class="font-medium text-gray-800 text-sm">🏢 研修企業様ご入力フォーム</p>
+                                <p class="text-xs text-gray-500">社労士への報告用</p>
+                            </div>
+                            <span class="text-green-600">→</span>
+                        </a>
+                        <a href="https://docs.google.com/forms/d/14L4OyclHMrlxTcFowflDtJ3d8Dy2fSL1qfUcx-H6GA4/edit" target="_blank" class="flex items-center justify-between p-3 bg-amber-50 rounded-lg hover:bg-amber-100 transition">
+                            <div>
+                                <p class="font-medium text-gray-800 text-sm">📊 振り返りアンケート</p>
+                                <p class="text-xs text-gray-500">研修終了後に配布</p>
+                            </div>
+                            <span class="text-amber-600">→</span>
+                        </a>
+                        <div class="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            <p class="font-medium text-gray-800 text-sm mb-1">📦 研修後配布資料（固定3点）</p>
+                            <ul class="text-xs text-gray-600 space-y-0.5">
+                                <li>① 研修配布資料の抜粋</li>
+                                <li>② プロンプト集_基礎編</li>
+                                <li>③ TBM実務プロンプト集（特典）</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== TRAINING TAB ========== -->
+        <div id="content-training" class="tab-content hidden space-y-4">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 text-white">
+                <p class="text-sm text-blue-200 mb-1">株式会社TBM</p>
+                <h2 class="text-xl font-bold mb-1">サステナビリティ経営・人的資本価値の向上に貢献する</h2>
+                <p class="text-2xl font-bold text-blue-200">実践型 生成AI研修</p>
+            </div>
+
+            <!-- 効果 -->
+            <div class="bg-white rounded-xl shadow-sm border p-5">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center"><span class="mr-2">💡</span>研修効果（数値実績）</h3>
+                <div class="grid md:grid-cols-4 gap-4">
+                    <div class="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl">
+                        <p class="text-4xl font-bold text-blue-600">400</p>
+                        <p class="text-sm text-gray-600">時間/年・人</p>
+                        <p class="text-xs text-gray-400 mt-1">≒約112万円相当</p>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-xl">
+                        <p class="text-2xl font-bold text-green-600">25%</p>
+                        <p class="text-xs text-gray-500">メール・資料作成削減</p>
+                        <p class="text-xs text-gray-400">60分→45分</p>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-xl">
+                        <p class="text-2xl font-bold text-green-600">80%</p>
+                        <p class="text-xs text-gray-500">リスト作成削減</p>
+                        <p class="text-xs text-gray-400">30分→6分</p>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-xl">
+                        <p class="text-2xl font-bold text-green-600">25%</p>
+                        <p class="text-xs text-gray-500">日報・議事録削減</p>
+                        <p class="text-xs text-gray-400">60分→45分</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- プラン -->
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="bg-blue-600 text-white p-4">
+                        <h4 class="font-bold">A. TBMオリジナル（助成金プラン）</h4>
+                        <p class="text-xs text-blue-200">助成金を活用しながらAI活用を推進したい企業様向け</p>
+                    </div>
+                    <div class="p-4 space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-gray-500">回数</span><span class="font-bold text-blue-600">全9回（1回70分）</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">受講者</span><span>同一メンバー固定</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">コース</span><span>基礎/営業/開発・生産技術</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">形式</span><span>対面 or オンライン</span></div>
+                        <div class="flex justify-between border-t pt-2 mt-2"><span class="text-gray-500">費用</span><span class="text-xl font-bold text-blue-600">363,000円/人〜</span></div>
+                        <div class="bg-green-50 p-2 rounded text-green-700 text-xs">💰 助成金で最大75%（中小）/ 60%（大企業）経費助成</div>
+                        <div class="bg-amber-50 p-2 rounded text-amber-700 text-xs">⚠️ 計画提出：1ヶ月前 / 支給申請：終了後2ヶ月以内</div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div class="bg-purple-600 text-white p-4">
+                        <h4 class="font-bold">B. カスタマイズプラン</h4>
+                        <p class="text-xs text-purple-200">業務内容に合わせてカスタマイズしたい企業様向け</p>
+                    </div>
+                    <div class="p-4 text-sm">
+                        <ul class="space-y-2 text-gray-700">
+                            <li>✓ 任意のコース・回数・時間で設計</li>
+                            <li>✓ 貴社業務に合わせた内容</li>
+                            <li>✓ 事前ヒアリング〜研修後まで一気通貫</li>
+                            <li>✓ TBM開発プロンプト集プレゼント</li>
+                        </ul>
+                        <div class="bg-purple-50 p-2 rounded text-purple-700 text-xs mt-3">📞 お見積りはお問い合わせください</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI活用事例 -->
+            <div class="bg-white rounded-xl shadow-sm border p-5">
+                <h3 class="font-bold text-gray-800 mb-4 flex items-center"><span class="mr-2">🎯</span>AI活用事例（部門別）</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="p-3 bg-blue-50 rounded-lg text-center">
+                        <p class="font-bold text-blue-800 text-sm mb-1">📊 営業</p>
+                        <p class="text-xs text-gray-600">資料・メール作成、ターゲット分析、商談壁打ち</p>
+                    </div>
+                    <div class="p-3 bg-green-50 rounded-lg text-center">
+                        <p class="font-bold text-green-800 text-sm mb-1">🚚 物流</p>
+                        <p class="text-xs text-gray-600">貿易書類、輸送ルート最適化</p>
+                    </div>
+                    <div class="p-3 bg-orange-50 rounded-lg text-center">
+                        <p class="font-bold text-orange-800 text-sm mb-1">🏢 総務</p>
+                        <p class="text-xs text-gray-600">社内規定Bot、議事録、日報</p>
+                    </div>
+                    <div class="p-3 bg-purple-50 rounded-lg text-center">
+                        <p class="font-bold text-purple-800 text-sm mb-1">⚙️ 開発</p>
+                        <p class="text-xs text-gray-600">アイデア壁打ち、点検アプリ</p>
+                    </div>
+                    <div class="p-3 bg-pink-50 rounded-lg text-center">
+                        <p class="font-bold text-pink-800 text-sm mb-1">📢 マーケ</p>
+                        <p class="text-xs text-gray-600">コピー、画像生成、レポート</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== MANUAL TAB ========== -->
+        <div id="content-manual" class="tab-content hidden space-y-3">
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-2">
+                <p class="text-sm text-blue-800">📖 <strong>業務マニュアル</strong>：各フェーズの詳細手順とDone条件を記載しています。ステータスコード（S10〜S55）で管理。</p>
+            </div>
+
+            <!-- Phase 1: 提案・内示 -->
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <button onclick="toggleAccordion('acc-phase1')" class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-8 h-8 bg-phase1-main text-white rounded-full flex items-center justify-center font-bold text-sm">1</span>
+                        <div class="text-left">
+                            <span class="font-bold text-gray-800">提案・内示フェーズ</span>
+                            <span class="text-xs text-gray-400 ml-2">S10-S12 | TBM営業</span>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400 transform transition acc-icon" id="icon-acc-phase1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="acc-phase1" class="accordion-content border-t">
+                    <div class="p-4 space-y-4">
+                        <!-- 必須ルール -->
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <p class="font-bold text-red-800 text-sm mb-2">🚨 必須ルール</p>
+                            <div class="flex flex-wrap gap-2">
+                                <a href="https://docs.google.com/document/d/1v5KwWv0ivQCvb8QmGl1TbzOiIVneX_nUpZahn6usyDg/edit?tab=t.kv2ygu4ud7me" target="_blank" class="px-3 py-1 bg-red-100 text-red-700 rounded text-xs font-medium hover:bg-red-200">📝 商談準備フォーマット</a>
+                                <a href="https://drive.google.com/drive/u/0/folders/1Wcm-iz03vWPS5cM-OnD1eVKAeIc4RXW1" target="_blank" class="px-3 py-1 bg-red-100 text-red-700 rounded text-xs font-medium hover:bg-red-200">📁 クライエント一覧</a>
+                            </div>
+                        </div>
+                        <!-- S10 -->
+                        <div class="border-l-4 border-phase1-main pl-4">
+                            <p class="font-bold text-gray-800">S10: 内示取得</p>
+                            <p class="text-xs text-gray-500 mb-2">顧客から内示（口頭・メール）を受領 → 案件ID発行</p>
+                            <div class="bg-gray-50 rounded p-2 text-xs">
+                                <p class="font-medium text-gray-700">Done条件:</p>
+                                <ul class="text-gray-600 mt-1 space-y-0.5">
+                                    <li>☐ 企業名・担当者・プラン種別が登録済</li>
+                                    <li>☐ 商談準備フォーマットで準備完了</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <!-- S11 -->
+                        <div class="border-l-4 border-phase1-main pl-4">
+                            <p class="font-bold text-gray-800">S11: 条件ヒアリング中</p>
+                            <p class="text-xs text-gray-500 mb-2">人数/雇保/テーマ/日程候補をヒアリング</p>
+                            <div class="bg-gray-50 rounded p-2 text-xs">
+                                <p class="font-medium text-gray-700">ヒアリング項目:</p>
+                                <ul class="text-gray-600 mt-1 space-y-0.5">
+                                    <li>☐ 受講人数・役職・部署・氏名</li>
+                                    <li>☐ 雇用保険加入有無</li>
+                                    <li>☐ 研修テーマ・形式（対面/オンライン）</li>
+                                    <li>☐ 研修日程（仮）</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <!-- S12 -->
+                        <div class="border-l-4 border-phase1-main pl-4">
+                            <p class="font-bold text-gray-800">S12: 条件確定</p>
+                            <p class="text-xs text-gray-500 mb-2">研修日程が確定し、顧客合意を得る</p>
+                            <div class="bg-gray-50 rounded p-2 text-xs">
+                                <p class="font-medium text-gray-700">Done条件:</p>
+                                <ul class="text-gray-600 mt-1 space-y-0.5">
+                                    <li>☐ 研修開始日が確定</li>
+                                    <li>☐ 顧客合意の証跡（メール等）を案件に添付</li>
+                                    <li>☐ 商談後記録をクライエント一覧に格納</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 2: 受注 -->
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <button onclick="toggleAccordion('acc-phase2')" class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-8 h-8 bg-phase2-main text-white rounded-full flex items-center justify-center font-bold text-sm">2</span>
+                        <div class="text-left">
+                            <span class="font-bold text-gray-800">受注フェーズ</span>
+                            <span class="text-xs text-gray-400 ml-2">S20-S26 | TBM営業・営業管理</span>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400 transform transition acc-icon" id="icon-acc-phase2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="acc-phase2" class="accordion-content border-t">
+                    <div class="p-4 space-y-4">
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <a href="https://forms.gle/nSL36KmZZocio6aZA" target="_blank" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">📋 受講前フォーム</a>
+                            <a href="https://docs.google.com/spreadsheets/d/1Ohx7SLl3C8Zd0u2UPO9JWBhXcoS3NKfO/edit" target="_blank" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">📄 名簿Excel</a>
+                            <a href="https://docs.google.com/spreadsheets/d/1egvzUrWYUGaHqlUtJrTJCuB4ifb4L7Pb/edit" target="_blank" class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium hover:bg-blue-200">📄 見積書兼注文書</a>
+                        </div>
+                        <!-- S20-S26 -->
+                        <div class="border-l-4 border-phase2-main pl-4"><p class="font-bold text-gray-800">S20: パンフP14日程反映・送付</p><p class="text-xs text-gray-500">パンフレットP14に研修日程を転記し顧客へ送付（白×ピンク版使用）</p></div>
+                        <div class="border-l-4 border-phase2-main pl-4"><p class="font-bold text-gray-800">S21: 事前情報回収中</p><p class="text-xs text-gray-500">Googleフォーム＋受講者名簿Excelを顧客に送付し回収</p></div>
+                        <div class="border-l-4 border-phase2-main pl-4"><p class="font-bold text-gray-800">S22: 見積/注文書 作成依頼</p><p class="text-xs text-gray-500">[営業→営業管理] 依頼ログを残す</p></div>
+                        <div class="border-l-4 border-phase2-main pl-4"><p class="font-bold text-gray-800">S23: 見積/注文書 作成済</p><p class="text-xs text-gray-500">[営業管理→営業] ファイルを案件に紐付け</p></div>
+                        <div class="border-l-4 border-phase2-main pl-4"><p class="font-bold text-gray-800">S24: 注文書送付済</p><p class="text-xs text-gray-500">顧客へ注文書を送付（送付ログを記録）</p></div>
+                        <div class="border-l-4 border-phase2-main pl-4"><p class="font-bold text-gray-800">S25: 捺印済注文書 回収済</p><p class="text-xs text-gray-500 text-green-700 font-medium">★ここが法的契約成立ポイント</p></div>
+                        <div class="border-l-4 border-phase2-main pl-4"><p class="font-bold text-gray-800">S26: SF承認・発注処理完了</p><p class="text-xs text-gray-500">Salesforceで見積承認・発注処理を完了</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 3: 社労士連携 -->
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <button onclick="toggleAccordion('acc-phase3')" class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-8 h-8 bg-phase3-main text-white rounded-full flex items-center justify-center font-bold text-sm">3</span>
+                        <div class="text-left">
+                            <span class="font-bold text-gray-800">社労士連携フェーズ（助成金）</span>
+                            <span class="text-xs text-gray-400 ml-2">S30-S33</span>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400 transform transition acc-icon" id="icon-acc-phase3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="acc-phase3" class="accordion-content border-t">
+                    <div class="p-4 space-y-4">
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs">
+                            <p class="font-bold text-amber-800">⚠️ 期限注意</p>
+                            <p class="text-amber-700">計画提出は研修開始<strong>1ヶ月前</strong>まで</p>
+                        </div>
+                        <a href="https://docs.google.com/forms/d/e/1FAIpQLSf4PXBynOjvR3EnJa7RX9oZMraYHQ8BjegoyTT6qZeLoKfHGQ/viewform" target="_blank" class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded text-xs font-medium hover:bg-green-200 mb-2">🏢 研修企業入力フォーム</a>
+                        <div class="border-l-4 border-phase3-main pl-4"><p class="font-bold text-gray-800">S30: 社労士提出完了</p><p class="text-xs text-gray-500">注文書＋パンフ＋企業入力フォームを社労士（KIZASHI）に提出</p></div>
+                        <div class="border-l-4 border-phase3-main pl-4"><p class="font-bold text-gray-800">S31: 顧客：社労士フォーム入力</p><p class="text-xs text-gray-500">顧客が社労士のフォームに入力</p></div>
+                        <div class="border-l-4 border-phase3-main pl-4"><p class="font-bold text-gray-800">S32: 顧客：必要資料提出</p><p class="text-xs text-gray-500">助成金申請に必要な資料を顧客が提出</p></div>
+                        <div class="border-l-4 border-phase3-main pl-4"><p class="font-bold text-gray-800">S33: 社労士：助成金計画書作成</p><p class="text-xs text-gray-500">社労士が計画書を作成・提出</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 4: 研修実施 -->
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <button onclick="toggleAccordion('acc-phase4')" class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-8 h-8 bg-phase4-main text-white rounded-full flex items-center justify-center font-bold text-sm">4</span>
+                        <div class="text-left">
+                            <span class="font-bold text-gray-800">研修実施フェーズ</span>
+                            <span class="text-xs text-gray-400 ml-2">S40-S42</span>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400 transform transition acc-icon" id="icon-acc-phase4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="acc-phase4" class="accordion-content border-t">
+                    <div class="p-4 space-y-4">
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 text-xs">
+                            <p class="font-bold text-orange-800">助成金プラン：全9回（1回70分）/ 同一受講者</p>
+                            <p class="text-orange-700">カスタマイズ：回数・時間は都度変更</p>
+                        </div>
+                        <div class="border-l-4 border-phase4-main pl-4">
+                            <p class="font-bold text-gray-800">S40: 研修準備</p>
+                            <div class="bg-gray-50 rounded p-2 text-xs mt-1">
+                                <ul class="text-gray-600 space-y-0.5">
+                                    <li>☐ 受講者リスト確定（9回同一）</li>
+                                    <li>☐ 全回の日時を確定</li>
+                                    <li>☐ 開催情報（URL/会場/入館/録画可否）</li>
+                                    <li>☐ 教材確定（配布資料・ワーク・デモ）</li>
+                                    <li>☐ 講師アサイン</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="border-l-4 border-phase4-main pl-4"><p class="font-bold text-gray-800">S41: 研修実施中</p><p class="text-xs text-gray-500">Session 01〜09を順次実施（各回の実施ログを記録）</p></div>
+                        <div class="border-l-4 border-phase4-main pl-4"><p class="font-bold text-gray-800">S42: 研修完了</p><p class="text-xs text-gray-500 text-green-700 font-medium">全Sessionが「実施済」になったら自動遷移</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 5: 研修後 -->
+            <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                <button onclick="toggleAccordion('acc-phase5')" class="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-8 h-8 bg-phase5-main text-white rounded-full flex items-center justify-center font-bold text-sm">5</span>
+                        <div class="text-left">
+                            <span class="font-bold text-gray-800">研修後フェーズ</span>
+                            <span class="text-xs text-gray-400 ml-2">S50-S55</span>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400 transform transition acc-icon" id="icon-acc-phase5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div id="acc-phase5" class="accordion-content border-t">
+                    <div class="p-4 space-y-4">
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs">
+                            <p class="font-bold text-purple-800">📦 配布資料（固定3点）</p>
+                            <ul class="text-purple-700 mt-1">
+                                <li>① 研修配布資料の抜粋</li>
+                                <li>② 【配布資料】プロンプト集_基礎編</li>
+                                <li>③ TBM実務プロンプト集_基礎編（年内受講特典）</li>
+                            </ul>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs">
+                            <p class="font-bold text-amber-800">⚠️ 期限注意</p>
+                            <p class="text-amber-700">支給申請は研修終了後<strong>2ヶ月以内</strong></p>
+                        </div>
+                        <a href="https://docs.google.com/forms/d/14L4OyclHMrlxTcFowflDtJ3d8Dy2fSL1qfUcx-H6GA4/edit" target="_blank" class="inline-block px-3 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium hover:bg-amber-200 mb-2">📊 振り返りアンケート</a>
+                        <div class="border-l-4 border-phase5-main pl-4"><p class="font-bold text-gray-800">S50: 成果物準備完了</p><p class="text-xs text-gray-500">配布資料3点をzip化（命名規則遵守）</p></div>
+                        <div class="border-l-4 border-phase5-main pl-4"><p class="font-bold text-gray-800">S51: 成果物送付・アンケ依頼済</p><p class="text-xs text-gray-500">研修終了後メール送付（zip＋アンケURL）/ 送付ログ記録</p></div>
+                        <div class="border-l-4 border-phase5-main pl-4"><p class="font-bold text-gray-800">S52: アンケ回収中</p><p class="text-xs text-gray-500">回答数を記録（n人中m人）/ 3営業日後リマインド</p></div>
+                        <div class="border-l-4 border-phase5-main pl-4"><p class="font-bold text-gray-800">S53: アンケ回収完了</p><p class="text-xs text-gray-500">全員回収 or 期限到来で締め</p></div>
+                        <div class="border-l-4 border-phase5-main pl-4"><p class="font-bold text-gray-800">S54: フォロー対応中（任意）</p><p class="text-xs text-gray-500">追加研修・継続提案</p></div>
+                        <div class="border-l-4 border-phase5-main pl-4"><p class="font-bold text-gray-800">S55: 案件クローズ</p><p class="text-xs text-gray-500">最終サマリー（成果・学び・次アクション）を記録</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Project Modal -->
+    <div id="new-project-modal" class="modal fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white">
+                <h2 class="font-bold text-gray-800">新規案件登録</h2>
+                <button onclick="closeNewProjectModal()" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <form id="new-project-form" class="p-4 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">企業名 <span class="text-red-500">*</span></label>
+                        <input type="text" id="company-name" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">担当者名</label>
+                        <input type="text" id="contact-name" class="w-full px-3 py-2 border rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">プラン種別 <span class="text-red-500">*</span></label>
+                        <select id="plan-type" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <option value="subsidy">助成金プラン（9回/70分）</option>
+                            <option value="custom">カスタマイズ</option>
+                            <option value="normal">通常プラン</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">研修開始予定日</label>
+                        <input type="date" id="training-start-date" class="w-full px-3 py-2 border rounded-lg text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">研修形式</label>
+                        <select id="training-type" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <option value="online">オンライン</option>
+                            <option value="offline">対面</option>
+                            <option value="hybrid">ハイブリッド</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">受講予定人数</label>
+                        <input type="number" id="participants" class="w-full px-3 py-2 border rounded-lg text-sm" min="1">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">研修回数</label>
+                        <input type="number" id="session-count" class="w-full px-3 py-2 border rounded-lg text-sm" value="9" min="1">
+                        <p class="text-xs text-gray-400 mt-1">助成金プランは9回固定</p>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">備考</label>
+                        <textarea id="notes" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm"></textarea>
+                    </div>
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closeNewProjectModal()" class="flex-1 px-4 py-2 border rounded-lg text-sm">キャンセル</button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">登録</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Project Detail Modal -->
+    <div id="project-detail-modal" class="modal fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white z-10">
+                <h2 class="font-bold text-gray-800" id="detail-company-name">企業名</h2>
+                <button onclick="closeProjectDetailModal()" class="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <div class="p-4" id="project-detail-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========== DATA ==========
+        let projects = JSON.parse(localStorage.getItem('tbm-ai-training-v3') || '[]');
+
+        // ステータス定義（S10〜S55）
+        const statusDefinitions = {
+            // Phase 1: 提案・内示
+            S10: { name: '内示取得', phase: 'proposal', order: 10 },
+            S11: { name: '条件ヒアリング中', phase: 'proposal', order: 11 },
+            S12: { name: '条件確定', phase: 'proposal', order: 12 },
+            // Phase 2: 受注
+            S20: { name: 'パンフ送付', phase: 'order', order: 20 },
+            S21: { name: '事前情報回収中', phase: 'order', order: 21 },
+            S22: { name: '見積依頼中', phase: 'order', order: 22 },
+            S23: { name: '見積作成済', phase: 'order', order: 23 },
+            S24: { name: '注文書送付済', phase: 'order', order: 24 },
+            S25: { name: '捺印済回収', phase: 'order', order: 25 },
+            S26: { name: 'SF処理完了', phase: 'order', order: 26 },
+            // Phase 3: 社労士連携
+            S30: { name: '社労士提出完了', phase: 'sharoushi', order: 30 },
+            S31: { name: '顧客フォーム入力', phase: 'sharoushi', order: 31 },
+            S32: { name: '顧客資料提出', phase: 'sharoushi', order: 32 },
+            S33: { name: '計画書作成', phase: 'sharoushi', order: 33 },
+            // Phase 4: 研修実施
+            S40: { name: '研修準備', phase: 'training', order: 40 },
+            S41: { name: '研修実施中', phase: 'training', order: 41 },
+            S42: { name: '研修完了', phase: 'training', order: 42 },
+            // Phase 5: 研修後
+            S50: { name: '成果物準備', phase: 'post', order: 50 },
+            S51: { name: '送付・アンケ依頼済', phase: 'post', order: 51 },
+            S52: { name: 'アンケ回収中', phase: 'post', order: 52 },
+            S53: { name: 'アンケ回収完了', phase: 'post', order: 53 },
+            S54: { name: 'フォロー対応中', phase: 'post', order: 54 },
+            S55: { name: '案件クローズ', phase: 'post', order: 55 },
+        };
+
+        const phaseMapping = {
+            proposal: { name: '提案・内示', color: 'phase1', statuses: ['S10','S11','S12'] },
+            order: { name: '受注', color: 'phase2', statuses: ['S20','S21','S22','S23','S24','S25','S26'] },
+            sharoushi: { name: '社労士連携', color: 'phase3', statuses: ['S30','S31','S32','S33'] },
+            training: { name: '研修実施', color: 'phase4', statuses: ['S40','S41','S42'] },
+            post: { name: '研修後', color: 'phase5', statuses: ['S50','S51','S52','S53','S54','S55'] },
+        };
+
+        // ========== FUNCTIONS ==========
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('bg-blue-600', 'text-white');
+                el.classList.add('text-gray-600');
+            });
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+            const btn = document.getElementById('tab-' + tabName);
+            btn.classList.add('bg-blue-600', 'text-white');
+            btn.classList.remove('text-gray-600');
+        }
+
+        function toggleAccordion(id) {
+            const el = document.getElementById(id);
+            const icon = document.getElementById('icon-' + id);
+            el.classList.toggle('open');
+            icon.classList.toggle('rotate-180');
+        }
+
+        function openNewProjectModal() { 
+            document.getElementById('new-project-modal').classList.add('active'); 
+            // 助成金プランの場合、回数を9に固定
+            document.getElementById('plan-type').addEventListener('change', function() {
+                if (this.value === 'subsidy') {
+                    document.getElementById('session-count').value = 9;
+                }
+            });
+        }
+        function closeNewProjectModal() { 
+            document.getElementById('new-project-modal').classList.remove('active'); 
+            document.getElementById('new-project-form').reset(); 
+        }
+
+        function openProjectDetailModal(id) {
+            const p = projects.find(x => x.id === id);
+            if (!p) return;
+            document.getElementById('detail-company-name').textContent = p.companyName;
+            renderProjectDetail(p);
+            document.getElementById('project-detail-modal').classList.add('active');
+        }
+        function closeProjectDetailModal() { 
+            document.getElementById('project-detail-modal').classList.remove('active'); 
+        }
+
+        function getPhaseFromStatus(status) {
+            const def = statusDefinitions[status];
+            return def ? def.phase : 'proposal';
+        }
+
+        function getNextStatus(currentStatus) {
+            const statuses = Object.keys(statusDefinitions).sort((a,b) => statusDefinitions[a].order - statusDefinitions[b].order);
+            const idx = statuses.indexOf(currentStatus);
+            if (idx >= 0 && idx < statuses.length - 1) return statuses[idx + 1];
+            return currentStatus;
+        }
+
+        function renderProjectDetail(p) {
+            const phase = getPhaseFromStatus(p.status);
+            const phaseInfo = phaseMapping[phase];
+            const statusInfo = statusDefinitions[p.status];
+            
+            let html = `
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500">ステータス</p>
+                        <p class="font-bold text-${phaseInfo.color}-dark">${p.status}: ${statusInfo.name}</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500">プラン</p>
+                        <p class="font-medium">${p.planType === 'subsidy' ? '助成金' : p.planType === 'custom' ? 'カスタマイズ' : '通常'}</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500">研修開始日</p>
+                        <p class="font-medium">${p.trainingStartDate || '未定'}</p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <p class="text-xs text-gray-500">受講者数</p>
+                        <p class="font-medium">${p.participants || '-'}名</p>
+                    </div>
+                </div>
+            `;
+
+            // 期限警告（助成金プランの場合）
+            if (p.planType === 'subsidy' && p.trainingStartDate) {
+                const startDate = new Date(p.trainingStartDate);
+                const planDeadline = new Date(startDate);
+                planDeadline.setMonth(planDeadline.getMonth() - 1);
+                const today = new Date();
+                const daysUntilPlan = Math.ceil((planDeadline - today) / (1000 * 60 * 60 * 24));
+                
+                if (daysUntilPlan <= 14 && statusDefinitions[p.status].order < 33) {
+                    html += `<div class="bg-red-50 border border-red-300 rounded-lg p-3 mb-4 deadline-warning">
+                        <p class="text-red-800 font-bold text-sm">⚠️ 計画提出期限まであと${daysUntilPlan}日！（${planDeadline.toLocaleDateString('ja-JP')}）</p>
+                    </div>`;
+                }
+            }
+
+            // ステータス変更
+            html += `<div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">ステータス変更</label>
+                <select onchange="updateProjectStatus('${p.id}', this.value)" class="w-full px-3 py-2 border rounded-lg text-sm">`;
+            Object.keys(statusDefinitions).forEach(s => {
+                html += `<option value="${s}" ${p.status === s ? 'selected' : ''}>${s}: ${statusDefinitions[s].name}</option>`;
+            });
+            html += `</select></div>`;
+
+            // セッション管理（研修実施フェーズ）
+            if (p.sessions && p.sessions.length > 0) {
+                html += `<div class="mb-4">
+                    <p class="font-bold text-gray-800 mb-2">📅 研修セッション（${p.sessions.filter(s=>s.done).length}/${p.sessions.length}回完了）</p>
+                    <div class="space-y-2 max-h-48 overflow-y-auto">`;
+                p.sessions.forEach((s, i) => {
+                    const isCurrent = !s.done && (i === 0 || p.sessions[i-1].done);
+                    html += `<div class="session-item ${s.done ? 'done' : ''} ${isCurrent ? 'current' : ''} p-2 rounded flex items-center justify-between text-sm">
+                        <div>
+                            <span class="font-medium">第${i+1}回</span>
+                            <span class="text-gray-500 ml-2">${s.date || '日程未定'}</span>
+                        </div>
+                        <button onclick="toggleSession('${p.id}', ${i})" class="px-2 py-1 rounded text-xs ${s.done ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
+                            ${s.done ? '✓ 完了' : '未実施'}
+                        </button>
+                    </div>`;
+                });
+                html += `</div></div>`;
+            }
+
+            // 備考
+            if (p.notes) {
+                html += `<div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <p class="text-xs text-gray-500">備考</p>
+                    <p class="text-sm">${p.notes}</p>
+                </div>`;
+            }
+
+            html += `<div class="flex space-x-2 pt-2 border-t">
+                <button onclick="deleteProject('${p.id}')" class="text-red-500 text-xs hover:underline">削除</button>
+            </div>`;
+
+            document.getElementById('project-detail-content').innerHTML = html;
+        }
+
+        function updateProjectStatus(id, newStatus) {
+            const p = projects.find(x => x.id === id);
+            if (p) {
+                p.status = newStatus;
+                save();
+                renderProjectDetail(p);
+                updateAll();
+            }
+        }
+
+        function toggleSession(projectId, sessionIndex) {
+            const p = projects.find(x => x.id === projectId);
+            if (p && p.sessions) {
+                p.sessions[sessionIndex].done = !p.sessions[sessionIndex].done;
+                // 全セッション完了時、自動でS42へ
+                if (p.sessions.every(s => s.done) && statusDefinitions[p.status].order < 42) {
+                    p.status = 'S42';
+                }
+                save();
+                renderProjectDetail(p);
+                updateAll();
+            }
+        }
+
+        function deleteProject(id) {
+            if (confirm('この案件を削除しますか？')) {
+                projects = projects.filter(x => x.id !== id);
+                save();
+                closeProjectDetailModal();
+                updateAll();
+            }
+        }
+
+        // 新規案件作成
+        document.getElementById('new-project-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const planType = document.getElementById('plan-type').value;
+            const sessionCount = planType === 'subsidy' ? 9 : parseInt(document.getElementById('session-count').value) || 1;
+            
+            const np = {
+                id: 'p_' + Date.now(),
+                companyName: document.getElementById('company-name').value,
+                contactName: document.getElementById('contact-name').value,
+                planType: planType,
+                trainingStartDate: document.getElementById('training-start-date').value,
+                trainingType: document.getElementById('training-type').value,
+                participants: document.getElementById('participants').value,
+                sessionCount: sessionCount,
+                sessions: Array.from({length: sessionCount}, (_, i) => ({ no: i+1, date: '', done: false })),
+                notes: document.getElementById('notes').value,
+                status: 'S10',
+                createdAt: new Date().toISOString(),
+            };
+            projects.push(np);
+            save();
+            closeNewProjectModal();
+            updateAll();
+            switchTab('kanban');
+        });
+
+        function save() { localStorage.setItem('tbm-ai-training-v3', JSON.stringify(projects)); }
+
+        // ========== UPDATE ALL ==========
+        function updateAll() {
+            updateDashboard();
+            renderKanban();
+        }
+
+        function updateDashboard() {
+            const active = projects.filter(p => p.status !== 'S55');
+            const completed = projects.filter(p => p.status === 'S55');
+            document.getElementById('stat-active').textContent = active.length;
+            document.getElementById('stat-completed').textContent = completed.length;
+
+            // 今週の研修
+            const today = new Date();
+            const weekEnd = new Date(today); weekEnd.setDate(today.getDate() + 7);
+            const thisWeek = projects.filter(p => {
+                if (!p.trainingStartDate) return false;
+                const d = new Date(p.trainingStartDate);
+                return d >= today && d <= weekEnd;
+            });
+            document.getElementById('stat-thisweek').textContent = thisWeek.length;
+
+            // 期限注意（助成金プランで計画提出期限が近い）
+            const deadlineWarning = projects.filter(p => {
+                if (p.planType !== 'subsidy' || !p.trainingStartDate) return false;
+                const startDate = new Date(p.trainingStartDate);
+                const planDeadline = new Date(startDate);
+                planDeadline.setMonth(planDeadline.getMonth() - 1);
+                const daysUntil = Math.ceil((planDeadline - today) / (1000 * 60 * 60 * 24));
+                return daysUntil <= 14 && statusDefinitions[p.status].order < 33;
+            });
+            document.getElementById('stat-deadline').textContent = deadlineWarning.length;
+
+            // 要対応（S10〜S41の案件数）
+            const pending = projects.filter(p => statusDefinitions[p.status].order < 42);
+            document.getElementById('stat-pending').textContent = pending.length;
+
+            // フェーズ別カウント
+            Object.keys(phaseMapping).forEach((phase, i) => {
+                const count = projects.filter(p => getPhaseFromStatus(p.status) === phase && p.status !== 'S55').length;
+                document.getElementById(`phase${i+1}-count`).textContent = `(${count})`;
+            });
+
+            // 優先タスク
+            const priorityContainer = document.getElementById('priority-tasks');
+            if (active.length === 0) {
+                priorityContainer.innerHTML = '<p class="text-gray-400 text-center py-4 text-sm">案件を追加してください</p>';
+            } else {
+                priorityContainer.innerHTML = active.slice(0, 8).map(p => {
+                    const phase = getPhaseFromStatus(p.status);
+                    const phaseInfo = phaseMapping[phase];
+                    const statusInfo = statusDefinitions[p.status];
+                    return `<div class="flex items-center justify-between p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100 text-sm" onclick="openProjectDetailModal('${p.id}')">
+                        <div>
+                            <p class="font-medium">${p.companyName}</p>
+                            <p class="text-xs text-gray-400">${p.status}: ${statusInfo.name}</p>
+                        </div>
+                        <span class="text-xs px-2 py-0.5 rounded bg-${phaseInfo.color}-light text-${phaseInfo.color}-dark">${phaseInfo.name}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            // 直近の研修・期限
+            const deadlineContainer = document.getElementById('upcoming-deadlines');
+            const upcoming = projects
+                .filter(p => p.trainingStartDate && p.status !== 'S55')
+                .sort((a,b) => new Date(a.trainingStartDate) - new Date(b.trainingStartDate))
+                .slice(0, 5);
+            if (upcoming.length === 0) {
+                deadlineContainer.innerHTML = '<p class="text-gray-400 text-center py-4 text-sm">予定なし</p>';
+            } else {
+                deadlineContainer.innerHTML = upcoming.map(p => {
+                    const isWarning = deadlineWarning.includes(p);
+                    return `<div class="flex items-center justify-between p-2 ${isWarning ? 'bg-red-50 border border-red-200' : 'bg-gray-50'} rounded cursor-pointer hover:bg-gray-100 text-sm" onclick="openProjectDetailModal('${p.id}')">
+                        <div>
+                            <p class="font-medium ${isWarning ? 'text-red-800' : ''}">${p.companyName}</p>
+                            <p class="text-xs ${isWarning ? 'text-red-600' : 'text-gray-400'}">${p.trainingStartDate}${isWarning ? ' ⚠️期限注意' : ''}</p>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        function renderKanban() {
+            const phases = ['proposal', 'order', 'sharoushi', 'training', 'post'];
+            phases.forEach((phase, i) => {
+                const container = document.getElementById(`kanban-phase${i+1}`);
+                const items = projects.filter(p => getPhaseFromStatus(p.status) === phase && p.status !== 'S55');
+                if (items.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">なし</p>';
+                } else {
+                    container.innerHTML = items.map(p => {
+                        const statusInfo = statusDefinitions[p.status];
+                        const phaseInfo = phaseMapping[phase];
+                        return `<div class="kanban-card bg-white p-3 rounded-lg shadow-sm border" onclick="openProjectDetailModal('${p.id}')">
+                            <p class="font-medium text-sm text-gray-800 mb-1">${p.companyName}</p>
+                            <p class="text-xs text-gray-500 mb-1">${p.status}: ${statusInfo.name}</p>
+                            <p class="text-xs text-gray-400">${p.trainingStartDate || '日程未定'}</p>
+                        </div>`;
+                    }).join('');
+                }
+            });
+        }
+
+        // Initialize
+        updateAll();
+    </script>
+</body>
+</html>
