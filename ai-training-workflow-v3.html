@@ -6,6 +6,7 @@
     <title>TBM AI研修事業 業務マニュアル</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
     <script>
         tailwind.config = {
             theme: {
@@ -23,16 +24,6 @@
             }
         }
     </script>
-    <style>
-        body { font-family: 'Noto Sans JP', sans-serif; background-color: #f8f9fa; }
-        .quick-link { transition: all 0.2s ease; }
-        .quick-link:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
-        .accordion-content.open { max-height: 5000px; }
-        .phase-section { scroll-margin-top: 120px; }
-        .card-hover { transition: all 0.2s ease; }
-        .card-hover:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-    </style>
 </head>
 <body class="min-h-screen">
     <!-- Header -->
@@ -715,24 +706,6 @@
         <p class="text-sm">© TBM Inc. AI研修事業 業務マニュアル</p>
     </footer>
 
-    <script>
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('bg-navy-900', 'text-white');
-                el.classList.add('text-navy-600');
-            });
-            document.getElementById('content-' + tabName).classList.remove('hidden');
-            const btn = document.getElementById('tab-' + tabName);
-            btn.classList.add('bg-navy-900', 'text-white');
-            btn.classList.remove('text-navy-600');
-        }
-        function toggleAccordion(id) {
-            const el = document.getElementById(id);
-            const icon = document.getElementById('icon-' + id);
-            el.classList.toggle('open');
-            icon.classList.toggle('rotate-180');
-        }
-    </script>
+    <script src="js/main.js"></script>
 </body>
 </html>
