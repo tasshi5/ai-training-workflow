@@ -1,0 +1,54 @@
+/**
+ * TBM AI研修事業 業務マニュアル - カスタムスタイル
+ *
+ * このファイルはTailwind CSSと併用するカスタムスタイルを定義します。
+ * Tailwind CSSはCDNから読み込まれます。
+ */
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* ============================================
+   Component Styles
+   ============================================ */
+
+/* Quick Link Buttons */
+.quick-link {
+    transition: all 0.2s ease;
+}
+
+.quick-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Accordion */
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.accordion-content.open {
+    max-height: 5000px;
+}
+
+/* Phase Section Scroll Offset */
+.phase-section {
+    scroll-margin-top: 120px;
+}
+
+/* Card Hover Effect */
+.card-hover {
+    transition: all 0.2s ease;
+}
+
+.card-hover:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
