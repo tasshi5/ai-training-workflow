@@ -31,12 +31,12 @@
 
 ```
 ai-training-workflow/
-├── README.md                      # このファイル
-├── ai-training-workflow-v3.html   # メインHTML
+├── README.md        # このファイル
+├── index.html       # メインHTML
 ├── css/
-│   └── styles.css                 # カスタムスタイル
+│   └── styles.css   # カスタムスタイル
 └── js/
-    └── main.js                    # アプリケーションロジック
+    └── main.js      # アプリケーションロジック
 ```
 
 ## 使い方
@@ -47,7 +47,7 @@ ai-training-workflow/
    git clone <repository-url>
    cd ai-training-workflow
    ```
-2. `ai-training-workflow-v3.html` をブラウザで開く
+2. `index.html` をブラウザで開く
 
 ### Webサーバーで配信
 ```bash
@@ -57,7 +57,7 @@ python -m http.server 8000
 # Node.jsの場合
 npx serve .
 ```
-ブラウザで `http://localhost:8000/ai-training-workflow-v3.html` にアクセス
+ブラウザで `http://localhost:8000` にアクセス
 
 ## 技術スタック
 
